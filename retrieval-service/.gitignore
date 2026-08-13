@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Claude Code workflow tracking (local planning/spec artifacts — not part of
+# the shipped service, kept out of the repo history; already excluded from
+# the Docker build context via .dockerignore)
+tasks/
+metric/
