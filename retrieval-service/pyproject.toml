@@ -7,6 +7,8 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "pydantic-settings>=2.6",
+    "boto3>=1.35",
+    "python-multipart>=0.0.12",
 ]
 
 [dependency-groups]
@@ -14,6 +16,7 @@ dev = [
     "pytest>=8.3",
     "httpx>=0.27",
     "ruff>=0.7",
+    "moto[s3]>=5.0",
 ]
 
 [tool.ruff]
