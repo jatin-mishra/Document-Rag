@@ -1,0 +1,4 @@
+spring:
+  temporal:
+    test-server:
+      enabled: true   # in-memory Temporal test server; tests never depend on a live server

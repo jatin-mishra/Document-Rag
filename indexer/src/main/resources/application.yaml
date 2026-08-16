@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: RagIndexer
+  temporal:
+    connection:
+      target: 127.0.0.1:7233   # local Temporal dev server (gRPC frontend)
+    namespace: default
+    workers-auto-discovery:
+      packages: org.kbase.ragindexer   # scans for @WorkflowImpl / @ActivityImpl and registers workers
+
+ragindexer:
+  stub-mode: true   # true = stub activities, dummy data, only local Temporal needed
+                    # false = live activities making real HTTP calls to the services below
+  services:
+    document-service-url: http://localhost:9090
+    embedding-service-url: http://localhost:9091
+    vector-store-url: http://localhost:9092

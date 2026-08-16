@@ -1,0 +1,29 @@
+task: Temporal workflow setup + sample DocumentIndexingWorkflow
+plan: ~/.claude/plans/temporal-shimmying-planet.md
+items:
+  - [x] Define success metrics in metric/test_cases_and_metrics.yml (reviewed via plan approval)
+  - [x] Add dependencies (temporal-spring-boot-starter 1.38.0, webmvc, temporal-testing)
+  - [x] Temporal connection + worker auto-discovery config in application.yaml
+  - [x] TaskQueues constant
+  - [x] DocumentIndexingWorkflow interface + impl (fetch -> process -> store, explicit retry/backoff options)
+  - [x] DocumentActivities interface + stub impl
+  - [x] IndexController (POST /api/v1/documents/{id}/index, 202/409/400)
+  - [x] Workflow unit tests (happy path + retry proof) with TestWorkflowExtension
+  - [x] Context-load test against in-memory test server
+  - [x] ./gradlew test green (BUILD SUCCESSFUL)
+  - [x] E2E verified against local Temporal 1.31.0:
+        202 STARTED, 409 ALREADY_RUNNING (duplicate in-flight), 400 blank id,
+        202 re-index after completion; history ends WorkflowExecutionCompleted
+        with 3 ActivityTaskCompleted events
+follow_up_2026_08_16:
+  - [x] EmbeddingActivities as second @ActivityInterface (own stub + own retry profile in workflow)
+  - [x] ragindexer.stub-mode flag - stub impls (dummy data, only local Temporal) vs live impls (real HTTP via RestClient)
+  - [x] ServiceProperties for live-mode base URLs
+  - [x] StubModeSelectionTest proves flag switches bean registration both ways
+  - [x] Tests green; E2E history shows 4 ActivityTaskCompleted across both interfaces
+review: |
+  All success criteria S1-S4 met; corner cases T1-T5 exercised (T2 via unit test
+  asserting exactly 3 fetch attempts). Retry policy: 2s initial, x2 backoff,
+  60s cap, 5 attempts max, DocumentNotFoundException non-retryable,
+  30s per-attempt timeout, 5m total budget per activity.
+  Next iteration: real document-service client in fetchDocument stub.

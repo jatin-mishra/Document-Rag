@@ -1,0 +1,46 @@
+# Success/failure criteria for: Temporal setup + sample DocumentIndexingWorkflow
+# Reviewed and approved as part of the implementation plan (2026-08-16).
+
+success_criteria:
+  - id: S1
+    metric: "./gradlew test passes with no live Temporal server required"
+  - id: S2
+    metric: "App boots and worker polls DOCUMENT_INDEXING task queue (visible in Temporal UI)"
+  - id: S3
+    metric: "POST /api/v1/documents/DOC-123/index returns 202 with workflowId doc-index-DOC-123"
+  - id: S4
+    metric: "temporal workflow show -w doc-index-DOC-123 ends with WorkflowExecutionCompleted and 3 activity completions"
+
+test_cases:
+  - id: T1
+    scenario: "Happy path: workflow runs fetch -> process -> store in order and returns a storage reference"
+    type: unit (TestWorkflowExtension, in-memory time-skipping server)
+  - id: T2
+    scenario: "Transient activity failure: fetchDocument fails twice then succeeds -> Temporal retries per RetryOptions (2s initial, x2 backoff), workflow still completes, exactly 3 attempts observed"
+    type: unit
+  - id: T3
+    scenario: "Corner: duplicate start while a run is in-flight -> 409 Conflict with existing runId (workflow-id based idempotency)"
+    type: e2e (manual curl during 2s simulated processing window)
+  - id: T4
+    scenario: "Corner: blank/whitespace documentId -> 400 Bad Request, no workflow started"
+    type: e2e
+  - id: T5
+    scenario: "Corner: same documentId re-indexed AFTER previous run completed -> allowed (new run, default id-reuse policy)"
+    type: e2e
+  - id: T6
+    scenario: "Corner: non-retryable failure (DocumentNotFoundException) -> fails fast, no retry storm"
+    type: covered by RetryOptions.setDoNotRetry config; exercised when real fetch logic lands
+  - id: T7
+    scenario: "Corner: Temporal server unreachable at request time -> 5xx surfaced, not swallowed"
+    type: documented behavior (gRPC deadline from client)
+
+# Added 2026-08-16 (user-requested extension: multi-interface activities + stub-mode flag)
+  - id: T8
+    scenario: "stub-mode=true (default) -> DocumentActivitiesStub + EmbeddingActivitiesStub beans registered; full workflow runs with only local Temporal, no external services"
+    type: unit (StubModeSelectionTest) + e2e (4 ActivityTaskCompleted in history)
+  - id: T9
+    scenario: "stub-mode=false -> DocumentActivitiesLive + EmbeddingActivitiesLive beans registered (real HTTP via RestClient to configured base URLs)"
+    type: unit (StubModeSelectionTest)
+  - id: T10
+    scenario: "Embedding activity has independent retry profile (5s initial, x2, 2m cap, 6 attempts, 2m per-attempt timeout) separate from document activities"
+    type: config review (DocumentIndexingWorkflowImpl second stub)
