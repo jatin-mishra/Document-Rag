@@ -1,3 +1,6 @@
+server:
+  port: 9265
+
 spring:
   application:
     name: RagIndexer
