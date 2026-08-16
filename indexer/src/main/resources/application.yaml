@@ -6,8 +6,10 @@ spring:
     name: RagIndexer
   temporal:
     connection:
-      target: 127.0.0.1:7233   # local Temporal dev server (gRPC frontend)
-    namespace: default
+      target: ${TEMPORAL_CONNECTION:127.0.0.1:7233}   # local Temporal dev server (gRPC frontend)
+      api-key: ${TEMPORAL_API_KEY:}   # optional; empty for local dev, set to Temporal Cloud API key in prod
+      enable-https: ${TEMPORAL_ENABLE_HTTPS:false}   # must be true when api-key is set (Temporal Cloud requires TLS)
+    namespace: ${TEMPORAL_NAMESPACE:default}   # default namespace for this app
     workers-auto-discovery:
       packages: org.kbase.ragindexer   # scans for @WorkflowImpl / @ActivityImpl and registers workers
 
