@@ -13,10 +13,51 @@ spring:
     workers-auto-discovery:
       packages: org.kbase.ragindexer   # scans for @WorkflowImpl / @ActivityImpl and registers workers
 
-ragindexer:
-  stub-mode: true   # true = stub activities, dummy data, only local Temporal needed
-                    # false = live activities making real HTTP calls to the services below
+
+http-service-configurations:
   services:
-    document-service-url: http://localhost:9090
-    embedding-service-url: http://localhost:9091
-    vector-store-url: http://localhost:9092
+    default:
+      readTimeoutInMillis: 5000
+      connectionRequestTimeoutInMillis: 5000
+      maxRetries: 3
+      retryIntervalInMillis: 1000
+      keepAliveInSeconds: 5
+      idleConnectionEvictionInSeconds: 60
+    dummyServiceConfiguration:
+      baseUrl: http://localhost:9090
+      readTimeoutInMillis: 5000
+      connectionRequestTimeoutInMillis: 5000
+  connection:
+    maxTotalConnections: 100
+    maxConnectionsPerRoute: 20
+    connectionTimeoutInMillis: 5000
+    socketTimeoutInMillis: 5000
+    timeToLiveInMinutes: 30000
+    inactivityValidationIntervalInSeconds: 60
+
+
+s3:
+  download:
+    in-memory-threshold-bytes: 10485760   # 10 MB; <= in heap (byte[]), > streamed to temp file
+
+
+awsConfiguration:
+  region: "ap-south-1"
+  s3:
+    download-in-memory-threshold-in-bytes: 10485760
+
+chunkingConfiguration:
+  bucket: chunk-store
+  path: /chunk-store/
+
+es:
+  scheme: http
+  host: localhost
+  port: 9200
+  username:
+  password:
+  keyword-index: chunk-keyword-store
+  connect-timeout-ms: 5000
+  socket-timeout-ms: 30000
+  max-conn-total: 100
+  max-conn-per-route: 50

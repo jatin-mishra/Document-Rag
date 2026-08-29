@@ -22,10 +22,23 @@ repositories {
     mavenCentral()
 }
 
+ext['elasticsearch-client.version'] = '8.17.4'
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation "io.temporal:temporal-spring-boot-starter:${temporalVersion}"
+
+    implementation "org.apache.httpcomponents.client5:httpclient5"
+
+    implementation 'co.elastic.clients:elasticsearch-java'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    implementation platform('software.amazon.awssdk:bom:2.32.14')
+    implementation 'software.amazon.awssdk:s3'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
