@@ -1,15 +1,14 @@
 from fastapi import FastAPI
 
+from app.api.routers.documents import router as documents_router
 from app.api.routers.health import router as health_router
-from app.api.routers.uploads import router as uploads_router
-from app.core.config import get_settings
+from app.configuration.settings import get_settings
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, version=settings.app_version)
-    app.include_router(health_router)
-    app.include_router(uploads_router)
+    app.include_router(documents_router)
     return app
 
 

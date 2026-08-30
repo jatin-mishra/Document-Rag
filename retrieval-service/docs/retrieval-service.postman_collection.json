@@ -1,0 +1,474 @@
+{
+  "info": {
+    "_postman_id": "b6e2f7a0-2c1a-4e4a-9b0a-retrieval-service",
+    "name": "retrieval-service",
+    "description": "Document upload APIs: direct upload (POST /documents), presigned upload create (POST /documents/presigned-upload, single or multipart depending on size), and presigned upload complete (POST /documents/presigned-upload/complete).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8123", "type": "string" },
+    { "key": "direct_upload_document_id", "value": "", "type": "string" },
+    { "key": "single_document_id", "value": "", "type": "string" },
+    { "key": "single_upload_url", "value": "", "type": "string" },
+    { "key": "multipart_document_id", "value": "", "type": "string" },
+    { "key": "multipart_upload_id", "value": "", "type": "string" },
+    { "key": "part1_url", "value": "", "type": "string" },
+    { "key": "part1_etag", "value": "", "type": "string" },
+    { "key": "part2_url", "value": "", "type": "string" },
+    { "key": "part2_etag", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct Upload (API 1)",
+      "item": [
+        {
+          "name": "Add Document (.md)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('upload_status is COMPLETED', () => pm.expect(body.upload_status).to.eql('COMPLETED'));",
+                  "pm.test('status is active', () => pm.expect(body.status).to.eql('active'));",
+                  "pm.test('path is {id}.md', () => pm.expect(body.path).to.eql(`${body.id}.md`));",
+                  "pm.test('etag is set', () => pm.expect(body.etag).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('direct_upload_document_id', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": { "raw": "{{base_url}}/documents", "host": ["{{base_url}}"], "path": ["documents"] },
+            "description": "Attach a .md file to the `file` field (e.g. naive_rag.md at the repo root)."
+          }
+        },
+        {
+          "name": "Add Document - With Overrides",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "chunking_strategy", "value": "SEMANTIC", "type": "text" },
+                { "key": "is_context_embedding_enabled", "value": "true", "type": "text" },
+                { "key": "created_by", "value": "alice", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/documents", "host": ["{{base_url}}"], "path": ["documents"] }
+          }
+        },
+        {
+          "name": "Add Document - Reject Non-MD (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 422', () => pm.response.to.have.status(422));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "url": { "raw": "{{base_url}}/documents", "host": ["{{base_url}}"], "path": ["documents"] },
+            "description": "Attach a non-.md file (e.g. notes.txt) to trigger DocumentInvalidFileError."
+          }
+        },
+        {
+          "name": "Add Document - Missing File (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 422', () => pm.response.to.have.status(422));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [] },
+            "url": { "raw": "{{base_url}}/documents", "host": ["{{base_url}}"], "path": ["documents"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Presigned Upload - Single (API 2 + 3)",
+      "item": [
+        {
+          "name": "Create Presigned Upload - Single",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('type is single_upload', () => pm.expect(body.type).to.eql('single_upload'));",
+                  "pm.collectionVariables.set('single_document_id', body.document_id);",
+                  "pm.collectionVariables.set('single_upload_url', body.single_upload.url);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"small.md\",\n  \"size_bytes\": 2048\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload"]
+            },
+            "description": "size_bytes (2048) is well below s3_multipart_threshold_bytes -> single_upload response."
+          }
+        },
+        {
+          "name": "PUT Bytes to Presigned URL (Single)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "text/markdown" }],
+            "body": { "mode": "raw", "raw": "# hello world\n\nuploaded straight to the presigned url." },
+            "url": { "raw": "{{single_upload_url}}", "host": ["{{single_upload_url}}"] },
+            "description": "Simulates the client PUTing bytes directly to S3 using the presigned URL from the previous request."
+          }
+        },
+        {
+          "name": "Complete Upload - Single",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('upload_status is COMPLETED', () => pm.expect(body.upload_status).to.eql('COMPLETED'));",
+                  "pm.test('status is active', () => pm.expect(body.status).to.eql('active'));",
+                  "pm.test('etag is set', () => pm.expect(body.etag).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_id\": \"{{single_document_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload/complete",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Complete Upload - Already Completed (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 409', () => pm.response.to.have.status(409));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_id\": \"{{single_document_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload/complete",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload", "complete"]
+            },
+            "description": "Run 'Complete Upload - Single' first so this document is already COMPLETED; replaying complete must 409."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Presigned Upload - Multipart (API 2 + 3)",
+      "item": [
+        {
+          "name": "Create Presigned Upload - Multipart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('type is multi_part_upload', () => pm.expect(body.type).to.eql('multi_part_upload'));",
+                  "pm.collectionVariables.set('multipart_document_id', body.document_id);",
+                  "pm.collectionVariables.set('multipart_upload_id', body.multi_part_upload.upload_id);",
+                  "pm.collectionVariables.set('part1_url', body.multi_part_upload.parts[0].url);",
+                  "pm.collectionVariables.set('part2_url', body.multi_part_upload.parts[1].url);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"big.md\",\n  \"size_bytes\": 104857601\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload"]
+            },
+            "description": "size_bytes exceeds the default s3_multipart_threshold_bytes (100MiB) by 1 -> multi_part_upload response with ceil(size/part_size) presigned part URLs."
+          }
+        },
+        {
+          "name": "PUT Part 1 (>= 5MiB body)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const etag = (pm.response.headers.get('ETag') || '').replace(/\"/g, '');",
+                  "pm.collectionVariables.set('part1_etag', etag);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "body": { "mode": "file", "file": {} },
+            "url": { "raw": "{{part1_url}}", "host": ["{{part1_url}}"] },
+            "description": "S3 requires every part except the last to be >= 5MiB. Attach a file of at least that size as the raw body."
+          }
+        },
+        {
+          "name": "PUT Part 2 (>= 5MiB body)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const etag = (pm.response.headers.get('ETag') || '').replace(/\"/g, '');",
+                  "pm.collectionVariables.set('part2_etag', etag);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "body": { "mode": "file", "file": {} },
+            "url": { "raw": "{{part2_url}}", "host": ["{{part2_url}}"] }
+          }
+        },
+        {
+          "name": "Complete Upload - Multipart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('upload_status is COMPLETED', () => pm.expect(body.upload_status).to.eql('COMPLETED'));",
+                  "pm.test(\"etag has '-N' suffix\", () => pm.expect(body.etag).to.match(/-\\d+$/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_id\": \"{{multipart_document_id}}\",\n  \"upload_id\": \"{{multipart_upload_id}}\",\n  \"parts\": [\n    { \"part_number\": 1, \"etag\": \"{{part1_etag}}\" },\n    { \"part_number\": 2, \"etag\": \"{{part2_etag}}\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload/complete",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload", "complete"]
+            },
+            "description": "Only the 2 parts actually uploaded above are listed; S3 does not require every originally-presigned part to be used, only that every listed part was really uploaded."
+          }
+        },
+        {
+          "name": "Create Presigned Upload - Exceeds Max Parts (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 422', () => pm.response.to.have.status(422));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"huge.md\",\n  \"size_bytes\": 104868085760\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload"]
+            },
+            "description": "size_bytes implies part_count = size / s3_multipart_part_size_bytes (10MiB) = 10001, one over s3_multipart_max_parts (10000)."
+          }
+        },
+        {
+          "name": "Create Presigned Upload - Reject Non-MD (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 422', () => pm.response.to.have.status(422));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"notes.txt\",\n  \"size_bytes\": 1024\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload"]
+            }
+          }
+        },
+        {
+          "name": "Complete Upload - Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_id\": \"00000000-0000-0000-0000-000000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload/complete",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Complete Upload - upload_id Without Parts (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 422', () => pm.response.to.have.status(422));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_id\": \"{{multipart_document_id}}\",\n  \"upload_id\": \"{{multipart_upload_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload/complete",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Complete Upload - Parts Without upload_id (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('status is 422', () => pm.response.to.have.status(422));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_id\": \"{{multipart_document_id}}\",\n  \"parts\": [ { \"part_number\": 1, \"etag\": \"deadbeef\" } ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/presigned-upload/complete",
+              "host": ["{{base_url}}"],
+              "path": ["documents", "presigned-upload", "complete"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
