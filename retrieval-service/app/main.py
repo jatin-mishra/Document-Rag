@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 
-from app.api.routers.documents import router as documents_router
-from app.api.routers.health import router as health_router
-from app.configuration.settings import get_settings
+from app.routers.documents import router as documents_router
+from app.configuration.dependency import get_settings
 
 
 def create_app() -> FastAPI:

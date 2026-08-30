@@ -1,15 +1,26 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel
 
+class S3Config(BaseModel):
+    bucket: str 
+    path: str 
 
+class AwsConfig(BaseModel):
+    url: str
+    region: str 
+    access_key: str 
+    secret_key: str 
+    s3: S3Config
 
-class Settings:
+class Settings(BaseSettings):
     app_name: str 
     app_version: str 
+    aws: AwsConfig 
 
-    def __init__(self):
-        self.app_name = "retrieval-service"
-        self.app_version = "v1.0.0"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore"
+    )
 
-
-
-def get_settings():
-    return Settings()
