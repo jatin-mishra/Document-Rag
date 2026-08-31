@@ -2,8 +2,11 @@
 import httpx
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.configuration.dependency import get_settings, build_client
+from app.configuration.dependency import get_settings
+from app.configuration.builder import build_client
+from app.clients.indexing.indexing_client import IndexingClient
 from app.routers.documents import router as documents_router
+from app.services.s3_service import S3Service
 
 
 
@@ -14,6 +17,7 @@ async def lifespan(app: FastAPI):
         name: build_client(cfg) for name, cfg in settings.services.items()
     }
     app.state.clients = clients 
+    app.state.s3_service = S3Service(settings, IndexingClient(clients["indexing"]))
     try:
         yield 
     finally:

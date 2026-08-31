@@ -37,11 +37,30 @@ class HttpClientConfiguration(BaseModel):
     http2: bool = False                 # flip on if downstreams support it
 
 
+class PostgreSqlConfiguration(BaseModel):
+    host: str 
+    port: str 
+    user: str 
+    password: str 
+    database: str
+
+    # pool tuning
+    pool_size: int = 10
+    max_overflow: int = 5
+    pool_recycle: int = 1800
+    echo: bool = False 
+
+    @property 
+    def dsn(self) -> str:
+        return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+
+
 class Settings(BaseSettings):
     app_name: str 
     app_version: str 
     aws: AwsConfig 
     services: dict[str, HttpClientConfiguration]
+    postgres: PostgreSqlConfiguration
 
     model_config = SettingsConfigDict(
         env_file=".env",
