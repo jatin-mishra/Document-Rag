@@ -1,20 +1,9 @@
-from enum import Enum
 from datetime import datetime
 from typing import Any
 from sqlalchemy import func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from app.context.models.base import Base
 from sqlalchemy.orm import Mapped, mapped_column
-
-class IndexingStatus(str, Enum):
-    NOT_STARTED = "NOT_STARTED"
-    TRIGGERED = "TRIGGERED"
-    TRIGGER_FAILED = "TRIGGER_FAILED"
-
-class UploadStatus(str, Enum):
-    INITIATED = "INITIATED"
-    SUCCESS = "SUCCESS"
-    FAILED = "FAILED"
 
 class Document(Base):
     __tablename__ = "documents"

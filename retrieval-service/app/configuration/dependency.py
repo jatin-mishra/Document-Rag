@@ -2,6 +2,9 @@ import httpx
 from typing import Annotated, AsyncIterator, TypeAlias
 
 from app.clients.indexing.indexing_client import IndexingClient
+from app.services.llm.anthropic import AnthropicProvider
+from app.services.llm.llm_proxy import LLMProvider, LLMProxy
+from app.services.query_service import QueryService
 from .settings import Settings
 from functools import lru_cache
 from app.services.s3_service import S3Service
@@ -70,3 +73,18 @@ def get_document_service(dao: DocumentDaoDep, s3: S3Dep, indexingClient: Indexin
     return DocumentService(dao, s3, indexingClient)
 
 DocumentServiceDep: TypeAlias = Annotated[DocumentService, Depends(get_document_service)]
+
+def anthropic_provider(setting: SettingsDep) -> LLMProvider:
+    return AnthropicProvider(setting.llm_configuration.anthropic)
+
+AnthropicProviderDep: TypeAlias = Annotated[LLMProvider, Depends(anthropic_provider)]
+
+def llm_proxy(anthropic_provider: AnthropicProviderDep) -> LLMProxy:
+    return LLMProxy(anthropic_provider)
+
+LLMProxyDep: TypeAlias = Annotated[LLMProxy, Depends(llm_proxy)]
+
+def query_service(llm_proxy: LLMProxyDep) -> QueryService:
+    return QueryService(llm_proxy)
+
+QueryServiceDep: TypeAlias = Annotated[QueryService, Depends(query_service)]
