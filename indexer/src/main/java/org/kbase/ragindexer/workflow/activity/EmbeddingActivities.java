@@ -6,5 +6,5 @@ import java.util.List;
 
 @ActivityInterface
 public interface EmbeddingActivities {
-    void embedAggregateAndStore(String documentId, String bucket, List<String> path);
+    void embedAggregateAndStore(String documentId, List<Integer> chunkIds);
 }

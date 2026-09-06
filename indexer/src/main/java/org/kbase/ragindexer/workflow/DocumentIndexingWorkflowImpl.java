@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import java.util.List;
+
 @WorkflowImpl(taskQueues = TaskQueues.DOCUMENT_INDEXING)
 public class DocumentIndexingWorkflowImpl implements DocumentIndexingWorkflow {
 
@@ -34,13 +36,9 @@ public class DocumentIndexingWorkflowImpl implements DocumentIndexingWorkflow {
         log.info("Chunking started for document {}", request.getDocumentId().strip());
         ChunkingActivityOutput output = chunkingActivities.fetchChunkAndStore(request);
         log.info("Embedding started for document {}", request.getDocumentId().strip());
-        // do parallel processing
-//        for(ChunkBatch batch : output.getChunkBatchList()){
-//            embeddingActivities.embedAggregateAndStore(
-//                    request.documentId().strip(),
-//                    output.getBucket(),
-//                    batch.allChunks().stream().map(ChunkData::path).toList());
-//        }
+        for(List<Integer> batch : output.getChunkIdBatches()){
+            embeddingActivities.embedAggregateAndStore(request.getDocumentId(), batch);
+        }
         log.info("Indexing completed for document {}", request.getDocumentId().strip());
     }
 }

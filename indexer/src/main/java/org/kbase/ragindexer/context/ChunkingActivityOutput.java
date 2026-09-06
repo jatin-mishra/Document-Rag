@@ -12,6 +12,5 @@ import java.util.List;
 @AllArgsConstructor
 public class ChunkingActivityOutput {
     private String documentId;
-    private String bucket;
-    private List<ChunkBatch> chunkBatchList;
+    private List<List<Integer>> chunkIdBatches;
 }

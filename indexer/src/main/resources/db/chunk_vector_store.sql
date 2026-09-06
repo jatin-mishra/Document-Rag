@@ -6,13 +6,16 @@
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
-CREATE TABLE IF NOT EXISTS chunk_vector_store (
+CREATE TABLE chunk_vector_store (
     id           TEXT           PRIMARY KEY,   -- documentId + chunk index (matches keyword store id)
     document_id  TEXT           NOT NULL,
     chunk_index  INT            NOT NULL,
     content      TEXT           NOT NULL,
     embedding    vector(1024)   NOT NULL,      -- must match vector-store.embedding-dimension
     created_at   TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    created_by   TEXT           NOT NULL DEFAULT current_user,
+    updated_at   TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    updated_by   TEXT           NOT NULL DEFAULT current_user,
     UNIQUE (document_id, chunk_index)
 );
 

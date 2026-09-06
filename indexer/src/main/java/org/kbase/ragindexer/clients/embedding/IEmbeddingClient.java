@@ -5,5 +5,11 @@ import org.kbase.ragindexer.constants.EmbeddingModel;
 import java.util.List;
 
 public interface IEmbeddingClient {
-    byte[] embed(EmbeddingModel model, List<String> contentBatch);
+
+    /**
+     * Embeds a batch of texts in a single call.
+     *
+     * @return one vector per input, in input order; an empty list for an empty batch.
+     */
+    List<float[]> embed(EmbeddingModel model, List<String> contentBatch);
 }

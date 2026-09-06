@@ -1,14 +1,14 @@
 package org.kbase.ragindexer.context.model;
 
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChunkKeywordStoreModel {
-    private String id;
+public class ChunkKeywordStoreModel extends BaseModel {
     private String documentId;
     private Integer chunkIndex;
     private String content;

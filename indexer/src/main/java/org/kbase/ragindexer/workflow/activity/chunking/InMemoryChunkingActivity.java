@@ -7,7 +7,6 @@ import org.kbase.ragindexer.clients.document.GetPresignedDocumentResponse;
 import org.kbase.ragindexer.clients.document.IDocumentServiceClient;
 import org.kbase.ragindexer.clients.s3.DownloadedDocument;
 import org.kbase.ragindexer.clients.s3.IS3Client;
-import org.kbase.ragindexer.configurations.ChunkingConfiguration;
 import org.kbase.ragindexer.constants.ChunkingStrategy;
 import org.kbase.ragindexer.context.ChunkBatch;
 import org.kbase.ragindexer.context.ChunkData;
@@ -22,6 +21,8 @@ import org.kbase.ragindexer.workflow.TaskQueues;
 import org.kbase.ragindexer.workflow.activity.ChunkingActivities;
 import org.springframework.stereotype.Component;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -33,8 +34,6 @@ public class InMemoryChunkingActivity implements ChunkingActivities {
     private final IS3Client s3Client;
 
     private final IDocumentServiceClient documentServiceClient;
-
-    private final ChunkingConfiguration chunkingConfiguration;
 
     private final IKeyWordDataStoreDao keyWordDataStoreDao;
 
@@ -49,14 +48,13 @@ public class InMemoryChunkingActivity implements ChunkingActivities {
             // didn't consider overlap
             List<ChunkBatch> chunkBatches = ChunkingFactory
                     .getStrategy(ChunkingStrategy.Naive)
-                    .chunk(document.getLines(), chunkingConfiguration.getPath(), request.getDocumentId());
+                    .chunk(document.getLines(), request.getDocumentId());
 
             chunkBatches.stream().flatMap(lines -> lines.allChunks().stream()).forEach(this::storeChunkData);
 
             return ChunkingActivityOutput.builder()
-                    .chunkBatchList(chunkBatches)
+                    .chunkIdBatches(chunkBatches.stream().map(ChunkBatch::chunkIds).toList())
                     .documentId(request.getDocumentId())
-                    .bucket(chunkingConfiguration.getBucket())
                     .build();
 
         }catch (Exception exception) {
@@ -67,14 +65,16 @@ public class InMemoryChunkingActivity implements ChunkingActivities {
 
     private void storeChunkData(ChunkData chunkData){
         log.info("chunked info: {}", chunkData.join());
-        s3Client.uploadChunks(chunkingConfiguration.getBucket(), chunkData.path(), chunkData.join());
-        String[] brokenPath = chunkData.path().split("/");
-        String[] fileNameAndExtension = brokenPath[brokenPath.length-1].split("\\.");
         keyWordDataStoreDao.upsert(ChunkKeywordStoreModel.builder()
-                        .id(fileNameAndExtension[0])
+                        .id(chunkData.docId() + "_" + chunkData.chunkIdx())
+                        .createdAt(Timestamp.from(Instant.now()))
+                        .updatedAt(Timestamp.from(Instant.now()))
+                        .createdBy("rag-indexer")
+                        .updatedBy("rag-indexer")
                         .chunkIndex(chunkData.chunkIdx())
                         .content(chunkData.join())
                         .documentId(chunkData.docId())
                 .build());
+
     }
 }
