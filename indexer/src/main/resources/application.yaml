@@ -30,6 +30,10 @@ http-service-configurations:
       baseUrl: http://localhost:8000
       readTimeoutInMillis: 5000
       connectionRequestTimeoutInMillis: 5000
+    embedding-service:
+      baseUrl: ${OLLAMA_BASE_URL:http://localhost:11434}
+      readTimeoutInMillis: 60000            # cold model load into memory + inference
+      connectionRequestTimeoutInMillis: 5000
   connection:
     maxTotalConnections: 100
     maxConnectionsPerRoute: 20
@@ -88,8 +92,8 @@ activity-configuration:
           - org.kbase.ragindexer.error.AppException
     embedding:
       task-queue: "DOCUMENT_EMBEDDING"
-      startToCloseTimeoutInMinutes: 2
-      scheduledToCloseTimeoutInMinutes: 10
+      startToCloseTimeoutInMinutes: 5     # first call after boot pays ollama's model-load cost
+      scheduledToCloseTimeoutInMinutes: 30  # must exceed startToClose x attempts + backoff
       retryConfig:
         initialIntervalInSeconds: 5
         backoffCoefficient: 2.0

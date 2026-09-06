@@ -12,11 +12,11 @@ public class NaiveChunking implements IChunkingStrategy {
     int numberOfChunksPerBatch = 2;
 
     @Override
-    public List<ChunkBatch> chunk(List<String> content, String path, String documentId) {
+    public List<ChunkBatch> chunk(List<String> content, String documentId) {
         List<ChunkBatch> allChunkBatchList = new ArrayList<>();
 
         ChunkBatch chunkBatch = new ChunkBatch(new ArrayList<>());
-        ChunkData chunk = new ChunkData(documentId, 0, new ArrayList<>(), buildAbsolutePath(path, documentId, 0));
+        ChunkData chunk = new ChunkData(documentId, 0, new ArrayList<>());
 
         int chunkIdx = 0;
 
@@ -29,7 +29,7 @@ public class NaiveChunking implements IChunkingStrategy {
                 }
                 chunkBatch.allChunks().add(chunk);
                 ++chunkIdx;
-                chunk = new ChunkData(documentId, chunkIdx, new ArrayList<>(), buildAbsolutePath(path, documentId, chunkIdx));
+                chunk = new ChunkData(documentId, chunkIdx, new ArrayList<>());
             }
             chunk.data().add(content.get(itr));
             itr++;
