@@ -1,14 +1,11 @@
 import aioboto3
 from botocore.config import Config
-from app.context.models.documents import Document
 from app.configuration.settings import Settings
-from app.clients.indexing.indexing_client import IndexingClient
-from fastapi import UploadFile
-import uuid
+from app.context.dtos.documents import S3UploadResponse
 
 class S3Service:
 
-    def __init__(self, settings: Settings, indexing: IndexingClient):
+    def __init__(self, settings: Settings):
         self.aws_config = settings.aws
         self.session = aioboto3.Session(
             aws_access_key_id=self.aws_config.access_key,
@@ -18,15 +15,17 @@ class S3Service:
         self.bucket = self.aws_config.s3.bucket 
         self.prefix = self.aws_config.s3.path
         self.endpoint = self.aws_config.url
-        self.indexing = indexing
 
     def _generate_key(self, file_name: str, extension: str):
         return f"{self.prefix}/{file_name}.{extension}"
 
-    async def upload_file(self, document: UploadFile) -> tuple[str, str]:
-        content = await document.read()
-        file_id = str(uuid.uuid4())
-        extension = "txt"
+    def getBucket(self):
+        return self.bucket
+
+    def getPrefixPath(self):
+        return self.prefix
+
+    async def upload_file(self, file_id: str, extension: str, content: str) -> S3UploadResponse:
         final_path = self._generate_key(file_id, extension)
         async with self.session.client("s3", endpoint_url=self.endpoint) as s3:
             response = await s3.put_object(
@@ -35,8 +34,13 @@ class S3Service:
                 Body=content,
                 ContentType="application/octet-stream"
             )
-        indexingResponse = await self.indexing.indexDocument(file_id, len(content))
-        return file_id, final_path, response["ETag"].strip('"'), len(content)
+        return S3UploadResponse(
+            file_id=file_id,
+            final_path=final_path,
+            etag=response["ETag"].strip('"'),
+            file_size=len(content),
+            bucket=self.bucket,
+        )
 
 
     async def generate_presigned_url(self, key: str, expires_in: int = 3600) -> str:

@@ -1,6 +1,8 @@
 import httpx 
 from app.clients.http.retry_transport import RetryTransport
 from app.configuration.settings import HttpClientConfiguration
+from sqlalchemy.ext.asyncio import create_async_engine
+
 
 
 def build_client(cfg: HttpClientConfiguration) -> httpx.AsyncClient:

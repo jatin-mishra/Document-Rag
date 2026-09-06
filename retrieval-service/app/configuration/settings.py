@@ -36,7 +36,6 @@ class HttpClientConfiguration(BaseModel):
 
     http2: bool = False                 # flip on if downstreams support it
 
-
 class PostgreSqlConfiguration(BaseModel):
     host: str 
     port: str 
@@ -53,7 +52,6 @@ class PostgreSqlConfiguration(BaseModel):
     @property 
     def dsn(self) -> str:
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-
 
 class Settings(BaseSettings):
     app_name: str 
