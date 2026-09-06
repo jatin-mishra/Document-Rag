@@ -2,3 +2,24 @@ spring:
   temporal:
     test-server:
       enabled: true   # in-memory Temporal test server; tests never depend on a live server
+
+activity-configuration:
+  activities:
+    chunking:
+      startToCloseTimeoutInMinutes: 1
+      scheduledToCloseTimeoutInMinutes: 5
+      retryConfig:
+        initialIntervalInSeconds: 2
+        backoffCoefficient: 2.0
+        maximumIntervalInSeconds: 60
+        maximumAttempts: 5
+        doNotRetry:
+          - org.kbase.ragindexer.error.AppException
+    embedding:
+      startToCloseTimeoutInMinutes: 2
+      scheduledToCloseTimeoutInMinutes: 10
+      retryConfig:
+        initialIntervalInSeconds: 5
+        backoffCoefficient: 2.0
+        maximumIntervalInSeconds: 120
+        maximumAttempts: 6

@@ -1,9 +1,12 @@
 server:
   port: 9265
 
+
 spring:
   application:
     name: RagIndexer
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   temporal:
     connection:
       target: ${TEMPORAL_CONNECTION:127.0.0.1:7233}   # local Temporal dev server (gRPC frontend)
@@ -13,10 +16,82 @@ spring:
     workers-auto-discovery:
       packages: org.kbase.ragindexer   # scans for @WorkflowImpl / @ActivityImpl and registers workers
 
-ragindexer:
-  stub-mode: true   # true = stub activities, dummy data, only local Temporal needed
-                    # false = live activities making real HTTP calls to the services below
+
+http-service-configurations:
   services:
-    document-service-url: http://localhost:9090
-    embedding-service-url: http://localhost:9091
-    vector-store-url: http://localhost:9092
+    default:
+      readTimeoutInMillis: 5000
+      connectionRequestTimeoutInMillis: 5000
+      maxRetries: 3
+      retryIntervalInMillis: 1000
+      keepAliveInSeconds: 5
+      idleConnectionEvictionInSeconds: 60
+    document-service:
+      baseUrl: http://localhost:8000
+      readTimeoutInMillis: 5000
+      connectionRequestTimeoutInMillis: 5000
+  connection:
+    maxTotalConnections: 100
+    maxConnectionsPerRoute: 20
+    connectionTimeoutInMillis: 5000
+    socketTimeoutInMillis: 5000
+    timeToLiveInMinutes: 30000
+    inactivityValidationIntervalInSeconds: 60
+
+
+s3:
+  download:
+    in-memory-threshold-bytes: 10485760   # 10 MB; <= in heap (byte[]), > streamed to temp file
+
+
+aws-configuration:
+  region: "ap-south-1"
+  endpoint: "http://localhost:4566"
+
+
+chunking-configuration:
+  bucket: chunk-store
+  path: chunk-store
+
+vector-store:
+  jdbc-url: ${VECTOR_DB_URL:jdbc:postgresql://localhost:5432/practice}
+  username: ${VECTOR_DB_USER:practice}
+  password: ${VECTOR_DB_PASSWORD:practice}
+  max-pool-size: 10
+  connection-timeout-ms: 5000
+  embedding-dimension: 1024   # must match the vector(N) column and the embedding model
+
+es:
+  scheme: http
+  host: localhost
+  port: 9200
+  username:
+  password:
+  keyword-index: "chunk_keyword_store"
+  connect-timeout-ms: 5000
+  socket-timeout-ms: 30000
+  max-conn-total: 100
+  max-conn-per-route: 50
+
+activity-configuration:
+  activities:
+    chunking:
+      task-queue: "DOCUMENT_CHUNKING"
+      startToCloseTimeoutInMinutes: 1
+      scheduledToCloseTimeoutInMinutes: 5
+      retryConfig:
+        initialIntervalInSeconds: 2
+        backoffCoefficient: 2.0
+        maximumIntervalInSeconds: 60
+        maximumAttempts: 5
+        doNotRetry:
+          - org.kbase.ragindexer.error.AppException
+    embedding:
+      task-queue: "DOCUMENT_EMBEDDING"
+      startToCloseTimeoutInMinutes: 2
+      scheduledToCloseTimeoutInMinutes: 10
+      retryConfig:
+        initialIntervalInSeconds: 5
+        backoffCoefficient: 2.0
+        maximumIntervalInSeconds: 120
+        maximumAttempts: 6
