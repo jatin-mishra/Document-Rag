@@ -8,6 +8,7 @@ import org.kbase.ragindexer.clients.document.IDocumentServiceClient;
 import org.kbase.ragindexer.clients.s3.DownloadedDocument;
 import org.kbase.ragindexer.clients.s3.IS3Client;
 import org.kbase.ragindexer.configurations.ChunkingConfiguration;
+import org.kbase.ragindexer.constants.ChunkingStrategy;
 import org.kbase.ragindexer.context.ChunkBatch;
 import org.kbase.ragindexer.context.ChunkData;
 import org.kbase.ragindexer.context.ChunkingActivityOutput;
@@ -15,17 +16,17 @@ import org.kbase.ragindexer.context.model.ChunkKeywordStoreModel;
 import org.kbase.ragindexer.dao.IKeyWordDataStoreDao;
 import org.kbase.ragindexer.dto.IndexingRequest;
 import org.kbase.ragindexer.error.AppException;
+import org.kbase.ragindexer.error.Error;
 import org.kbase.ragindexer.strategies.chunking.ChunkingFactory;
 import org.kbase.ragindexer.workflow.TaskQueues;
 import org.kbase.ragindexer.workflow.activity.ChunkingActivities;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@RequiredArgsConstructor
 @ActivityImpl(taskQueues = TaskQueues.DOCUMENT_CHUNKING)
 public class InMemoryChunkingActivity implements ChunkingActivities {
 
@@ -39,30 +40,33 @@ public class InMemoryChunkingActivity implements ChunkingActivities {
 
     @Override
     public ChunkingActivityOutput fetchChunkAndStore(IndexingRequest request) throws AppException {
-        GetPresignedDocumentResponse response = documentServiceClient.getPresignedDocument(request.documentId());
+        log.info("starting chunking!...");
+        GetPresignedDocumentResponse response = documentServiceClient.getPresignedDocument(request.getDocumentId());
         response.validate();
-        try(DownloadedDocument document = s3Client.download(response.getDetails().getUrl(), request.fileSizeInBytes())){
+        log.info("received presigned url: {}", response.getUrl());
+        try(DownloadedDocument document = s3Client.download(response.getUrl(), request.getFileSizeInBytes())){
 
             // didn't consider overlap
             List<ChunkBatch> chunkBatches = ChunkingFactory
-                    .getStrategy(response.getChunkingStrategy())
-                    .chunk(document.getLines(), chunkingConfiguration.getPath(), request.documentId());
+                    .getStrategy(ChunkingStrategy.Naive)
+                    .chunk(document.getLines(), chunkingConfiguration.getPath(), request.getDocumentId());
 
             chunkBatches.stream().flatMap(lines -> lines.allChunks().stream()).forEach(this::storeChunkData);
 
             return ChunkingActivityOutput.builder()
                     .chunkBatchList(chunkBatches)
-                    .documentId(request.documentId())
+                    .documentId(request.getDocumentId())
                     .bucket(chunkingConfiguration.getBucket())
                     .build();
 
         }catch (Exception exception) {
-            log.error("failed in chunking with exception: {}, documentId: {}", exception.getMessage(), request.documentId(), exception);
-            throw exception;
+            log.error("failed in chunking with exception: {}, documentId: {}", exception.getMessage(), request.getDocumentId(), exception);
+            throw Error.internal_server_error.builder().message(exception.getMessage()).build();
         }
     }
 
     private void storeChunkData(ChunkData chunkData){
+        log.info("chunked info: {}", chunkData.join());
         s3Client.uploadChunks(chunkingConfiguration.getBucket(), chunkData.path(), chunkData.join());
         String[] brokenPath = chunkData.path().split("/");
         String[] fileNameAndExtension = brokenPath[brokenPath.length-1].split("\\.");

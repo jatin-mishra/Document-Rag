@@ -8,6 +8,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
@@ -18,36 +19,32 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
 
 @Slf4j
 @Component
-public class S3Client implements IS3Client {
+public class S3WrapperClient implements IS3Client {
 
     private final RestClient restClient;
     private final long inMemoryThresholdBytes;
-    private final software.amazon.awssdk.services.s3.S3Client s3;
+    private final S3Client s3;
 
-    public S3Client(CloseableHttpClient httpClient,
-                    software.amazon.awssdk.services.s3.S3Client s3,
-                    @Value("${s3.download.in-memory-threshold-bytes:10485760}") long threshold) {
+    public S3WrapperClient(CloseableHttpClient httpClient, S3Client s3) {
         var factory = new HttpComponentsClientHttpRequestFactory(httpClient);
-        // No baseUrl: a presigned URL is absolute and passed whole to .uri(...)
         this.restClient = RestClient.builder().requestFactory(factory).build();
-        this.inMemoryThresholdBytes = threshold; // default 10 MB
+        this.inMemoryThresholdBytes = 10485760; // default 10 MB
         this.s3 = s3;
     }
 
     @Override
     public DownloadedDocument download(String presignedUrl, long sizeBytes) {
-        validate(presignedUrl);
+        URI uri = validate(presignedUrl);
         return sizeBytes <= inMemoryThresholdBytes
-                ? DownloadedDocument.inMemory(downloadToMemory(presignedUrl))
-                : DownloadedDocument.onDisk(downloadToFile(presignedUrl), sizeBytes);
+                ? DownloadedDocument.inMemory(downloadToMemory(uri))
+                : DownloadedDocument.onDisk(downloadToFile(uri), sizeBytes);
     }
 
     @Override
-    public void uploadChunks(String bucket, String path, String content) {
+    public UploadToS3Response uploadChunks(String bucket, String path, String content) {
         byte[] body = content.getBytes(StandardCharsets.UTF_8);
 
         PutObjectResponse response = this.s3.putObject(
@@ -58,17 +55,19 @@ public class S3Client implements IS3Client {
                         .build(),
                 RequestBody.fromBytes(body));
 
-        UploadToS3Response.builder().bucketId(bucket).fileSize(response.size()).path(path).build();
+        log.info("etag received from s3 on putting object: {}", response.eTag());
+
+        return UploadToS3Response.builder().bucketId(bucket).fileSize(body.length).path(path).build();
     }
 
-    private byte[] downloadToMemory(String url) {
+    private byte[] downloadToMemory(URI url) {
         byte[] body = restClient.get().uri(url).retrieve().body(byte[].class);
         if (body == null) throw new S3DownloadException("Download failed, empty response body");
         log.info("Downloaded {} bytes in-memory", body.length);
         return body;
     }
 
-    private Path downloadToFile(String url) {
+    private Path downloadToFile(URI url) {
         Path target = createTempFile(url);
         try {
             return restClient.get().uri(url).exchange((request, response) -> {
@@ -102,7 +101,7 @@ public class S3Client implements IS3Client {
         }
     }
 
-    private Path createTempFile(String url) {
+    private Path createTempFile(URI url) {
         try {
             return Files.createTempFile("s3-download-", suffixOf(url));
         } catch (IOException e) {
@@ -110,16 +109,12 @@ public class S3Client implements IS3Client {
         }
     }
 
-    private String suffixOf(String url) {
-        try {
-            String path = new URI(url).getPath();
-            int slash = path == null ? -1 : path.lastIndexOf('/');
-            String name = slash >= 0 ? path.substring(slash + 1) : "";
-            int dot = name.lastIndexOf('.');
-            return dot > 0 ? name.substring(dot) : ".tmp";
-        } catch (URISyntaxException e) {
-            return ".tmp";
-        }
+    private String suffixOf(URI url) {
+        String path = url.getPath();
+        int slash = path == null ? -1 : path.lastIndexOf('/');
+        String name = slash >= 0 ? path.substring(slash + 1) : "";
+        int dot = name.lastIndexOf('.');
+        return dot > 0 ? name.substring(dot) : ".tmp";
     }
 
     private void deleteQuietly(Path path) {

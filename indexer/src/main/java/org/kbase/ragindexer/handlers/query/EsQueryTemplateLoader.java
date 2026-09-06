@@ -2,6 +2,7 @@ package org.kbase.ragindexer.handlers.query;
 
 
 import jakarta.annotation.PostConstruct;
+import lombok.NoArgsConstructor;
 import org.kbase.ragindexer.constants.EsQueryType;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@NoArgsConstructor
 public class EsQueryTemplateLoader {
 
     private final Map<EsQueryType, String> queries = new HashMap<>();

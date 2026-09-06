@@ -40,7 +40,7 @@ public class EsKeywordStoreDaoImpl implements IKeyWordDataStoreDao {
     }
 
     @Override
-    public String upsert(ChunkKeywordStoreModel document) {
+    public void upsert(ChunkKeywordStoreModel document) {
         if (document == null || !StringUtils.hasText(document.getId())) {
             throw Error.bad_request.builder()
                     .message("A non-blank custom id is required to upsert a keyword document")
@@ -55,7 +55,6 @@ public class EsKeywordStoreDaoImpl implements IKeyWordDataStoreDao {
 
             log.info("Upserted keyword document id: {}, index: {}, result: {}",
                     response.id(), index, response.result());
-            return response.id();
         } catch (Exception exception) {
             log.error("Failed to upsert keyword document id: {}, index: {}",
                     document.getId(), index, exception);

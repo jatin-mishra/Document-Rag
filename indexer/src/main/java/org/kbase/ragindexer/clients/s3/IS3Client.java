@@ -1,6 +1,6 @@
 package org.kbase.ragindexer.clients.s3;
 
-import java.util.List;
+import org.kbase.ragindexer.dto.UploadToS3Response;
 
 public interface IS3Client {
     /**
@@ -13,5 +13,5 @@ public interface IS3Client {
      */
     DownloadedDocument download(String presignedUrl, long sizeBytes);
 
-    void uploadChunks(String bucketId, String path, String content);
+    UploadToS3Response uploadChunks(String bucketId, String path, String content);
 }

@@ -14,6 +14,7 @@ import org.kbase.ragindexer.workflow.TaskQueues;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import software.amazon.awssdk.annotations.NotNull;
@@ -30,9 +31,10 @@ public class IndexController {
     @SneakyThrows
     @PostMapping("/index")
     public ResponseEntity<IndexingResponse> startIndexing(
-            @NotNull IndexingRequest request
+            @RequestBody @NotNull IndexingRequest request
     ) {
-        String workflowId = "doc-index-" + request.documentId().strip();
+        log.info("Received indexing request for document: {}", request.toString());
+        String workflowId = "doc-index-" + request.getDocumentId().strip();
         DocumentIndexingWorkflow workflow = workflowClient.newWorkflowStub(
                 DocumentIndexingWorkflow.class,
                 WorkflowOptions.newBuilder()

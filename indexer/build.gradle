@@ -39,6 +39,14 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.32.14')
     implementation 'software.amazon.awssdk:s3'
 
+    // PostgreSQL vector store (pgvector) accessed via JDBI SqlObject over a HikariCP pool
+    implementation 'org.postgresql:postgresql'
+    implementation 'com.zaxxer:HikariCP'
+    implementation 'org.jdbi:jdbi3-core:3.49.0'
+    implementation 'org.jdbi:jdbi3-sqlobject:3.49.0'
+    implementation 'org.jdbi:jdbi3-postgres:3.49.0'
+    implementation 'com.pgvector:pgvector:0.1.6'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

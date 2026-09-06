@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @Setter
-@ConfigurationProperties("chunkingConfiguration")
+@ConfigurationProperties("chunking-configuration")
 public class ChunkingConfiguration {
     String bucket;
     String path;
