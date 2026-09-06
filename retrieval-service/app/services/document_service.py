@@ -2,7 +2,8 @@
 import logging
 
 from app.dao.document_dao import DocumentDao
-from app.context.models.documents import Document, UploadStatus, IndexingStatus
+from app.context.models.documents import Document 
+from app.constants.status import UploadStatus, IndexingStatus
 from app.clients.indexing.indexing_client import IndexingClient
 from app.services.s3_service import S3Service
 from fastapi import UploadFile

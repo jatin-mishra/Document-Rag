@@ -2,7 +2,8 @@ from typing import Any
 from sqlalchemy import cast, func, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.context.models.documents import Document, IndexingStatus, UploadStatus
+from app.context.models.documents import Document
+from app.constants.status import UploadStatus, IndexingStatus
 import uuid
 
 

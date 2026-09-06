@@ -1,6 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel
 
+from app.configuration.llm_configuration import LLMConfiguration
+
+
 class S3Config(BaseModel):
     bucket: str 
     path: str 
@@ -59,6 +62,7 @@ class Settings(BaseSettings):
     aws: AwsConfig 
     services: dict[str, HttpClientConfiguration]
     postgres: PostgreSqlConfiguration
+    llm_configuration: LLMConfiguration = LLMConfiguration()
 
     model_config = SettingsConfigDict(
         env_file=".env",
