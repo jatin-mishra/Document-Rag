@@ -1,6 +1,7 @@
 import httpx
 from typing import Annotated, AsyncIterator, TypeAlias
 
+from app.clients.embedding.embedding_client import EmbeddingClient
 from app.clients.indexing.indexing_client import IndexingClient
 from app.services.llm.anthropic import AnthropicProvider
 from app.services.llm.llm_proxy import LLMProvider, LLMProxy
@@ -30,10 +31,15 @@ def service_client(name: str):
     return _dep
 
 
-def get_indexing_client(client: Annotated[httpx.AsyncClient, Depends(service_client("indexing"))]):
+def get_indexing_client(client: Annotated[httpx.AsyncClient, Depends(service_client("indexing"))]) -> IndexingClient:
     return IndexingClient(client)
 
 IndexingClientDep: TypeAlias = Annotated[IndexingClient, Depends(get_indexing_client)]
+
+def embedding_client(client: Annotated[httpx.AsyncClient, Depends(service_client("embedding"))]) -> EmbeddingClient:
+    return EmbeddingClient(client)
+
+EmbeddingClientDep: TypeAlias = Annotated[httpx.AsyncClient, Depends(embedding_client)]
 
 def get_s3_service(settings: SettingsDep) -> S3Service:
     return S3Service(settings)
@@ -84,7 +90,7 @@ def llm_proxy(anthropic_provider: AnthropicProviderDep) -> LLMProxy:
 
 LLMProxyDep: TypeAlias = Annotated[LLMProxy, Depends(llm_proxy)]
 
-def query_service(llm_proxy: LLMProxyDep) -> QueryService:
-    return QueryService(llm_proxy)
+def query_service(llm_proxy: LLMProxyDep, embedding_client: EmbeddingClientDep) -> QueryService:
+    return QueryService(llm_proxy, embedding_client)
 
 QueryServiceDep: TypeAlias = Annotated[QueryService, Depends(query_service)]
