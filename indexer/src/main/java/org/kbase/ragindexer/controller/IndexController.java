@@ -4,6 +4,8 @@ import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowExecutionAlreadyStarted;
 import io.temporal.client.WorkflowOptions;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import software.amazon.awssdk.annotations.NotNull;
 
 @Slf4j
 @RestController
@@ -31,7 +32,7 @@ public class IndexController {
     @SneakyThrows
     @PostMapping("/index")
     public ResponseEntity<IndexingResponse> startIndexing(
-            @RequestBody @NotNull IndexingRequest request
+            @RequestBody @Valid @NotNull IndexingRequest request
     ) {
         log.info("Received indexing request for document: {}", request.toString());
         String workflowId = "doc-index-" + request.getDocumentId().strip();

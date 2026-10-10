@@ -8,7 +8,7 @@ import java.util.List;
 
 public class NaiveChunking implements IChunkingStrategy {
 
-    int numberOfLinesPerChunk = 5;
+    int numberOfLinesPerChunk = 20;
     int numberOfChunksPerBatch = 2;
 
     @Override

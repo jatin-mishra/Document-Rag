@@ -12,6 +12,8 @@ import org.kbase.ragindexer.context.model.ChunkVectorStoreModel;
  */
 public interface IVectorStoreDao {
 
+    String TABLE_NAME = "chunk_vector_store";
+
     /**
      * Idempotent create-or-update of a chunk row keyed by {@link ChunkVectorStoreModel#getId()}.
      * Safe to retry (e.g. a Temporal activity re-running after a mid-batch failure) and safe to
