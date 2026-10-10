@@ -26,6 +26,7 @@ class AnthropicProvider(LLMProvider):
             ],
             model=self.default_model
         )
+        print()
         for block in message.content:
             if block.type == "text":
                 return block.text

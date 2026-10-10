@@ -3,6 +3,7 @@ from typing import Annotated, AsyncIterator, TypeAlias
 
 from app.clients.embedding.embedding_client import EmbeddingClient
 from app.clients.indexing.indexing_client import IndexingClient
+from app.dao.chunk_dao import DocumentChunkDAO
 from app.services.llm.anthropic import AnthropicProvider
 from app.services.llm.llm_proxy import LLMProvider, LLMProxy
 from app.services.query_service import QueryService
@@ -73,7 +74,11 @@ DbSession: TypeAlias = Annotated[AsyncSession, Depends(get_db_session)]
 def get_document_dao(session: DbSession) -> DocumentDao:
     return DocumentDao(session)
 
+def get_document_chunk_dao(session: DbSession) -> DocumentChunkDAO:
+    return DocumentChunkDAO(session)
+
 DocumentDaoDep: TypeAlias = Annotated[DocumentDao, Depends(get_document_dao)]
+DocumentChunkDAODep: TypeAlias = Annotated[DocumentChunkDAO, Depends(get_document_chunk_dao)]
 
 def get_document_service(dao: DocumentDaoDep, s3: S3Dep, indexingClient: IndexingClientDep) -> DocumentService:
     return DocumentService(dao, s3, indexingClient)
@@ -90,7 +95,7 @@ def llm_proxy(anthropic_provider: AnthropicProviderDep) -> LLMProxy:
 
 LLMProxyDep: TypeAlias = Annotated[LLMProxy, Depends(llm_proxy)]
 
-def query_service(llm_proxy: LLMProxyDep, embedding_client: EmbeddingClientDep) -> QueryService:
-    return QueryService(llm_proxy, embedding_client)
+def query_service(llm_proxy: LLMProxyDep, embedding_client: EmbeddingClientDep, chunk_dao: DocumentChunkDAODep) -> QueryService:
+    return QueryService(llm_proxy, embedding_client, chunk_dao)
 
 QueryServiceDep: TypeAlias = Annotated[QueryService, Depends(query_service)]

@@ -7,11 +7,10 @@ from app.configuration.builder import build_client
 from app.routers.documents import router as documents_router
 from app.routers.query import router as query_router
 
-
+settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
 
     # http clients
     clients : dict[str, httpx.AsyncClient] = {
@@ -33,7 +32,6 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    settings = get_settings()
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
     app.include_router(documents_router)
     app.include_router(query_router)
@@ -44,6 +42,4 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
-
-    settings = get_settings()
     uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=True)

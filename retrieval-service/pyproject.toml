@@ -17,6 +17,8 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0",
     "asyncpg>=0.31.0",
     "anthropic[aiohttp]>=1.4.0",
+    "pgvector>=0.3.6",
+    "jinja2>=3.1.6",
 ]
 
 [dependency-groups]
