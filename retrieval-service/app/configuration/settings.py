@@ -57,9 +57,11 @@ class PostgreSqlConfiguration(BaseModel):
         return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
 
 class Settings(BaseSettings):
-    app_name: str 
-    app_version: str 
-    aws: AwsConfig 
+    app_name: str
+    app_version: str
+    environment: str = "local"
+    langfuse_enabled: bool = False
+    aws: AwsConfig
     services: dict[str, HttpClientConfiguration]
     postgres: PostgreSqlConfiguration
     llm_configuration: LLMConfiguration = LLMConfiguration()

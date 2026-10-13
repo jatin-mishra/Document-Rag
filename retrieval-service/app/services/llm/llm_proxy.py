@@ -7,11 +7,11 @@ from app.constants.providers import LLMProviderType
 
 class LLMProvider(ABC):
     @abstractmethod
-    async def send(query: str) -> str:
+    async def send(self, query: str) -> str:
         pass
 
 
-class LLMProxy(ABC):
+class LLMProxy:
 
     def __init__(self, anthropic_provider: LLMProvider):
         self.anthropic = anthropic_provider
@@ -20,19 +20,11 @@ class LLMProxy(ABC):
             LLMProviderType.ANTHROPIC: self._send_to_anthropic
         }
 
-    async def send_message(self, provider_type: LLMProviderType, message: str) -> str:
-        provider = self.providers.get(provider_type)
+    async def send_message(self, message: str, provider_type: LLMProviderType | None = None) -> str:
+        provider = self.providers.get(provider_type or self.default_provider)
         if provider is None:
-            raise ValueError("wrong provider specified")
+            raise ValueError(f"unknown provider: {provider_type}")
         return await provider(message)
-
-    async def send_message(self, message: str) -> str:
-        return await self.providers.get(self.default_provider)(message)
 
     async def _send_to_anthropic(self, message: str) -> str:
         return await self.anthropic.send(message)
-
-
-
-
-

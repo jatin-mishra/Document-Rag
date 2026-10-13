@@ -1,9 +1,11 @@
+import asyncio
 
 import httpx
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.configuration.dependency import get_settings, get_async_engine, get_session_maker
 from app.configuration.builder import build_client
+from app.observability.tracing import start_tracing, stop_tracing
 from app.routers.documents import router as documents_router
 from app.routers.query import router as query_router
 
@@ -11,6 +13,14 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    # tracing first so later startup steps can be observed
+    tracing = await asyncio.to_thread(
+        start_tracing,
+        settings.langfuse_enabled,
+        settings.environment,
+        settings.app_version,
+    )
 
     # http clients
     clients : dict[str, httpx.AsyncClient] = {
@@ -26,9 +36,10 @@ async def lifespan(app: FastAPI):
     try:
         yield 
     finally:
-        import asyncio 
         await asyncio.gather(*(c.aclose() for c in clients.values()))
         await engine.dispose()
+        # must be last: anything torn down after this could still emit spans
+        await asyncio.to_thread(stop_tracing, tracing)
 
 
 def create_app() -> FastAPI:
